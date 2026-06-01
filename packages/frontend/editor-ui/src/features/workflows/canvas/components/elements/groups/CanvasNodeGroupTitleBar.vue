@@ -139,7 +139,7 @@ function onWrapperPointerDown(event: PointerEvent) {
 			isCollapsed ? $style.collapsed : '',
 			selected ? $style.selected : '',
 			executionStatus === 'success' ? $style.success : '',
-			executionStatus === 'error' ? $style.error : '',
+			executionStatus === 'error' || executionStatus === 'crashed' ? $style.error : '',
 			executionStatus === 'running' ? $style.running : '',
 			executionStatus === 'waiting' ? $style.waiting : '',
 		]"
@@ -232,7 +232,7 @@ function onWrapperPointerDown(event: PointerEvent) {
 					<CanvasNodeStatusMark status="success" :iterations="maxMemberIterations" />
 				</div>
 				<div
-					v-else-if="executionStatus === 'error'"
+					v-else-if="executionStatus === 'error' || executionStatus === 'crashed'"
 					:class="$style.statusIcons"
 					data-test-id="canvas-node-group-status-error"
 				>

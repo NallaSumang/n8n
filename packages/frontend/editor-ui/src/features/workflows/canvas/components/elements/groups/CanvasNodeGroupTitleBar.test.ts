@@ -29,7 +29,7 @@ vi.mock('@vue-flow/core', () => ({
 
 import CanvasNodeGroupTitleBar from './CanvasNodeGroupTitleBar.vue';
 import { GROUP_HEADER_HEIGHT } from '../../../stores/canvasNodeGroups.constants';
-import type { CanvasGroupViewState, GroupExecutionStatus } from '../../../canvas.types';
+import type { CanvasGroupViewState } from '../../../canvas.types';
 
 const baseGroup: IWorkflowGroup = {
 	id: 'g1',
@@ -145,14 +145,21 @@ describe('CanvasNodeGroupTitleBar', () => {
 
 		it('shows success icon when executionStatus is success', () => {
 			const wrapper = render({
-				data: makeData({ executionStatus: 'success' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'success' }),
 			});
 			expect(wrapper.getByTestId('canvas-node-group-status-success')).toBeTruthy();
 		});
 
 		it('shows error icon when executionStatus is error', () => {
 			const wrapper = render({
-				data: makeData({ executionStatus: 'error' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'error' }),
+			});
+			expect(wrapper.getByTestId('canvas-node-group-status-error')).toBeTruthy();
+		});
+
+		it('maps crashed to the error visual (parity with single-node hasExecutionErrors)', () => {
+			const wrapper = render({
+				data: makeData({ executionStatus: 'crashed' }),
 			});
 			expect(wrapper.getByTestId('canvas-node-group-status-error')).toBeTruthy();
 		});
@@ -167,7 +174,7 @@ describe('CanvasNodeGroupTitleBar', () => {
 
 		it('applies a hashed `running` class when executionStatus is running', () => {
 			const wrapper = render({
-				data: makeData({ executionStatus: 'running' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'running' }),
 			});
 			const root = wrapper.getByTestId('canvas-node-group');
 			expect([...root.classList].some((c) => /running/i.test(c))).toBe(true);
@@ -175,7 +182,7 @@ describe('CanvasNodeGroupTitleBar', () => {
 
 		it('applies a hashed `waiting` class when executionStatus is waiting', () => {
 			const wrapper = render({
-				data: makeData({ executionStatus: 'waiting' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'waiting' }),
 			});
 			const root = wrapper.getByTestId('canvas-node-group');
 			expect([...root.classList].some((c) => /waiting/i.test(c))).toBe(true);

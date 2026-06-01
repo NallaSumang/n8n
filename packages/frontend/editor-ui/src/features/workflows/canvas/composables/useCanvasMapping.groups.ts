@@ -5,7 +5,6 @@ import type {
 	CanvasConnectionData,
 	CanvasGroupNode,
 	CanvasGroupViewState,
-	GroupExecutionStatus,
 } from '../canvas.types';
 import {
 	CANVAS_NODE_GROUP_HANDLE_LEFT,
@@ -134,15 +133,20 @@ export interface GroupAggregateInputs {
 }
 
 /**
- * Aggregate per-member execution state into a single group-level status.
+ * Aggregate per-member execution state into a single group-level status,
+ * narrowed from `ExecutionStatus`.
  *
  * Priority mirrors the single-node CSS rule order (later rules win), so the
  * group surfaces the same dominant state a user would see on a member node:
- *   waiting > running > error > success > idle
+ *   waiting > running > crashed > error > success > idle
  *
  * - `waiting`   any member is paused waiting for input (form, webhook, etc.).
  * - `running`   any member is running or queued to start next.
- * - `error`     any member has issues or executionStatus 'error' / 'crashed'.
+ * - `crashed`   any member has executionStatus 'crashed'. Surfaced
+ *               distinctly so the data layer doesn't lose info; the title
+ *               bar still maps it to the error visual, matching how the
+ *               single-node visual treats crashed via `hasExecutionErrors`.
+ * - `error`     any member has issues or executionStatus 'error'.
  *               NB: a member that errored with `onError=continue` still
  *               contributes here — that matches the single-node visual,
  *               which also flags the offending node despite the workflow
@@ -150,7 +154,9 @@ export interface GroupAggregateInputs {
  * - `success`   at least one member is 'success' and every other member is
  *               'success' or 'unknown' (didn't run — e.g. an untaken
  *               conditional branch).
- * - `undefined` (idle) otherwise, including the all-`unknown` case.
+ * - `undefined` (idle) otherwise. 'canceled' / 'new' / 'unknown' fall
+ *               through here because the single-node visual gives them no
+ *               dedicated class either.
  */
 export function aggregateGroupStatus(
 	memberIds: string[],
@@ -161,11 +167,12 @@ export function aggregateGroupStatus(
 		nodeHasIssuesById,
 		nodeExecutionStatusById,
 	}: GroupAggregateInputs,
-): GroupExecutionStatus {
+): ExecutionStatus | undefined {
 	let anyWaiting = false;
 	let anyRunning = false;
-	let anySuccess = false;
+	let anyCrashed = false;
 	let anyError = false;
+	let anySuccess = false;
 	let anyOther = false;
 
 	for (const id of memberIds) {
@@ -179,19 +186,29 @@ export function aggregateGroupStatus(
 			anyRunning = true;
 			continue;
 		}
-		if (nodeHasIssuesById[id] || status === 'error' || status === 'crashed') {
+		if (status === 'crashed') {
+			anyCrashed = true;
+			continue;
+		}
+		if (nodeHasIssuesById[id] || status === 'error') {
 			anyError = true;
 			continue;
 		}
 		if (status === 'success') {
 			anySuccess = true;
-		} else if (status !== undefined && status !== 'unknown') {
+		} else if (
+			status !== undefined &&
+			status !== 'unknown' &&
+			status !== 'new' &&
+			status !== 'canceled'
+		) {
 			anyOther = true;
 		}
 	}
 
 	if (anyWaiting) return 'waiting';
 	if (anyRunning) return 'running';
+	if (anyCrashed) return 'crashed';
 	if (anyError) return 'error';
 	if (anySuccess && !anyOther) return 'success';
 	return undefined;

@@ -154,19 +154,46 @@ describe('aggregateGroupStatus (AC #7)', () => {
 		expect(status).toBe('error');
 	});
 
-	it('returns error when any member has executionStatus error or crashed', () => {
+	it('returns error when any member has executionStatus error', () => {
 		expect(
 			aggregateGroupStatus(['a'], {
 				...EMPTY_AGG,
 				nodeExecutionStatusById: { a: 'error' },
 			}),
 		).toBe('error');
+	});
+
+	it('returns crashed distinctly so the data layer keeps the info; visual mapping happens in the title bar', () => {
 		expect(
 			aggregateGroupStatus(['a'], {
 				...EMPTY_AGG,
 				nodeExecutionStatusById: { a: 'crashed' },
 			}),
-		).toBe('error');
+		).toBe('crashed');
+	});
+
+	it('crashed beats plain error on priority — crashed dominates the group', () => {
+		expect(
+			aggregateGroupStatus(['a', 'b'], {
+				...EMPTY_AGG,
+				nodeExecutionStatusById: { a: 'error', b: 'crashed' },
+			}),
+		).toBe('crashed');
+	});
+
+	it('ignores canceled / new for the success-success rollup (treated as idle, mirroring single-node)', () => {
+		expect(
+			aggregateGroupStatus(['a', 'b'], {
+				...EMPTY_AGG,
+				nodeExecutionStatusById: { a: 'success', b: 'canceled' },
+			}),
+		).toBe('success');
+		expect(
+			aggregateGroupStatus(['a', 'b'], {
+				...EMPTY_AGG,
+				nodeExecutionStatusById: { a: 'canceled', b: 'new' },
+			}),
+		).toBeUndefined();
 	});
 
 	it('returns success when all members are success', () => {
