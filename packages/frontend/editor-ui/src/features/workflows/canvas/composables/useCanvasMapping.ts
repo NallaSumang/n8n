@@ -619,9 +619,9 @@ export function useCanvasMapping({
 		if (!groupView) return [];
 		const allGroups = workflowDocumentStore.value.allGroups;
 		if (allGroups.length === 0) return [];
-		const runIterationsById: Record<string, number> = {};
+		const memberIterationsById: Record<string, number> = {};
 		for (const node of nodes.value) {
-			runIterationsById[node.id] =
+			memberIterationsById[node.id] =
 				filterOutCanceled(nodeExecutionRunDataById.value[node.id])?.length ?? 0;
 		}
 		return mapGroupsToVueFlowNodes({
@@ -636,9 +636,8 @@ export function useCanvasMapping({
 				nodeExecutionWaitingForNextById: nodeExecutionWaitingForNextById.value,
 				nodeHasIssuesById: nodeHasIssuesById.value,
 				nodeExecutionStatusById: nodeExecutionStatusById.value,
-				nodeExecutionRunDataIterationsById: runIterationsById,
+				memberIterationsById,
 			},
-			nodeExecutionRunDataIterationsById: runIterationsById,
 		});
 	});
 

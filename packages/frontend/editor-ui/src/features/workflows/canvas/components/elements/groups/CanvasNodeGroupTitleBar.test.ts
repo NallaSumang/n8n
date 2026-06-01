@@ -43,8 +43,8 @@ function makeData(overrides: Partial<CanvasGroupViewState> = {}): CanvasGroupVie
 		memberRect: { x: 0, y: 0, width: 500, height: 100 },
 		isCollapsed: true,
 		autofocusTitle: false,
-		groupStatus: undefined,
-		runDataIterations: 0,
+		executionStatus: undefined,
+		maxMemberIterations: 0,
 		...overrides,
 	};
 }
@@ -133,8 +133,8 @@ describe('CanvasNodeGroupTitleBar', () => {
 	});
 
 	describe('execution-status classes', () => {
-		it('applies no status class when groupStatus is undefined (idle)', () => {
-			const wrapper = render({ data: makeData({ groupStatus: undefined }) });
+		it('applies no status class when executionStatus is undefined (idle)', () => {
+			const wrapper = render({ data: makeData({ executionStatus: undefined }) });
 			const root = wrapper.getByTestId('canvas-node-group');
 			// No status icon and no .success / .error / .running class semantics.
 			expect(wrapper.queryByTestId('canvas-node-group-status-success')).toBeNull();
@@ -143,23 +143,23 @@ describe('CanvasNodeGroupTitleBar', () => {
 			expect(root).toBeTruthy();
 		});
 
-		it('shows success icon when groupStatus is success', () => {
+		it('shows success icon when executionStatus is success', () => {
 			const wrapper = render({
-				data: makeData({ groupStatus: 'success' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'success' as GroupExecutionStatus }),
 			});
 			expect(wrapper.getByTestId('canvas-node-group-status-success')).toBeTruthy();
 		});
 
-		it('shows error icon when groupStatus is error', () => {
+		it('shows error icon when executionStatus is error', () => {
 			const wrapper = render({
-				data: makeData({ groupStatus: 'error' as GroupExecutionStatus }),
+				data: makeData({ executionStatus: 'error' as GroupExecutionStatus }),
 			});
 			expect(wrapper.getByTestId('canvas-node-group-status-error')).toBeTruthy();
 		});
 
-		it('shows iteration count on success when runDataIterations > 1', () => {
+		it('shows iteration count on success when maxMemberIterations > 1', () => {
 			const wrapper = render({
-				data: makeData({ groupStatus: 'success', runDataIterations: 3 }),
+				data: makeData({ executionStatus: 'success', maxMemberIterations: 3 }),
 			});
 			const icon = wrapper.getByTestId('canvas-node-group-status-success');
 			expect(icon).toHaveTextContent('3');

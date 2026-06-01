@@ -146,8 +146,8 @@ export interface CanvasGroupViewState {
 	memberRect: { x: number; y: number; width: number; height: number };
 	isCollapsed: boolean;
 	autofocusTitle: boolean;
-	groupStatus: GroupExecutionStatus;
-	runDataIterations: number;
+	executionStatus: GroupExecutionStatus;
+	maxMemberIterations: number;
 }
 
 export type CanvasGroupNode = Node<CanvasGroupViewState>;

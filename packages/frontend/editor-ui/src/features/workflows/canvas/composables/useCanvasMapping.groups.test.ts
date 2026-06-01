@@ -4,7 +4,7 @@ import type { INodeUi } from '@/Interface';
 import type { CanvasConnection } from '../canvas.types';
 import {
 	aggregateGroupStatus,
-	aggregateRunDataIterations,
+	aggregateMaxMemberIterations,
 	buildCollapsedGroupByNodeId,
 	computeMemberRectFromStore,
 	mapGroupsToVueFlowNodes,
@@ -55,7 +55,7 @@ const EMPTY_AGG = {
 	nodeExecutionWaitingForNextById: {},
 	nodeHasIssuesById: {},
 	nodeExecutionStatusById: {},
-	nodeExecutionRunDataIterationsById: {},
+	memberIterationsById: {},
 };
 
 describe('computeMemberRectFromStore', () => {
@@ -203,12 +203,12 @@ describe('aggregateGroupStatus (AC #7)', () => {
 	});
 });
 
-describe('aggregateRunDataIterations', () => {
+describe('aggregateMaxMemberIterations', () => {
 	it('returns the maximum iteration count across members', () => {
-		expect(aggregateRunDataIterations(['a', 'b'], { a: 1, b: 5 })).toBe(5);
+		expect(aggregateMaxMemberIterations(['a', 'b'], { a: 1, b: 5 })).toBe(5);
 	});
 	it('returns 0 when nothing is set', () => {
-		expect(aggregateRunDataIterations(['a'], {})).toBe(0);
+		expect(aggregateMaxMemberIterations(['a'], {})).toBe(0);
 	});
 });
 
@@ -224,7 +224,6 @@ describe('mapGroupsToVueFlowNodes', () => {
 			autofocusGroupId: null,
 			readOnly: false,
 			aggregates: EMPTY_AGG,
-			nodeExecutionRunDataIterationsById: {},
 		});
 	}
 
@@ -281,7 +280,6 @@ describe('mapGroupsToVueFlowNodes', () => {
 			autofocusGroupId: null,
 			readOnly: true,
 			aggregates: EMPTY_AGG,
-			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].selectable).toBe(false);
 	});
@@ -295,7 +293,6 @@ describe('mapGroupsToVueFlowNodes', () => {
 			autofocusGroupId: null,
 			readOnly: false,
 			aggregates: EMPTY_AGG,
-			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out).toHaveLength(0);
 	});
@@ -309,7 +306,6 @@ describe('mapGroupsToVueFlowNodes', () => {
 			autofocusGroupId: null,
 			readOnly: true,
 			aggregates: EMPTY_AGG,
-			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].draggable).toBe(false);
 	});
@@ -336,7 +332,6 @@ describe('mapGroupsToVueFlowNodes', () => {
 			autofocusGroupId: 'g1',
 			readOnly: false,
 			aggregates: EMPTY_AGG,
-			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].data?.autofocusTitle).toBe(true);
 	});

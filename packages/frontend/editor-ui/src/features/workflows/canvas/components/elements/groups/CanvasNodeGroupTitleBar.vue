@@ -48,8 +48,8 @@ const titleText = useTemplateRef<HTMLElement>('titleText');
 
 const group = computed(() => props.data.group);
 const isCollapsed = computed(() => props.data.isCollapsed);
-const groupStatus = computed(() => props.data.groupStatus);
-const runDataIterations = computed(() => props.data.runDataIterations);
+const executionStatus = computed(() => props.data.executionStatus);
+const maxMemberIterations = computed(() => props.data.maxMemberIterations);
 
 const frameStyle = computed(() => ({
 	top: `${HEADER_HEIGHT}px`,
@@ -138,9 +138,9 @@ function onWrapperPointerDown(event: PointerEvent) {
 			$style.wrapper,
 			isCollapsed ? $style.collapsed : '',
 			selected ? $style.selected : '',
-			groupStatus === 'success' ? $style.success : '',
-			groupStatus === 'error' ? $style.error : '',
-			groupStatus === 'running' ? $style.running : '',
+			executionStatus === 'success' ? $style.success : '',
+			executionStatus === 'error' ? $style.error : '',
+			executionStatus === 'running' ? $style.running : '',
 		]"
 		:style="{
 			width: '100%',
@@ -224,14 +224,14 @@ function onWrapperPointerDown(event: PointerEvent) {
 					</N8nTooltip>
 				</div>
 				<div
-					v-if="groupStatus === 'success'"
+					v-if="executionStatus === 'success'"
 					:class="$style.statusIcons"
 					data-test-id="canvas-node-group-status-success"
 				>
-					<CanvasNodeStatusMark status="success" :iterations="runDataIterations" />
+					<CanvasNodeStatusMark status="success" :iterations="maxMemberIterations" />
 				</div>
 				<div
-					v-else-if="groupStatus === 'error'"
+					v-else-if="executionStatus === 'error'"
 					:class="$style.statusIcons"
 					data-test-id="canvas-node-group-status-error"
 				>
