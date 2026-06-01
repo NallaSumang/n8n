@@ -142,6 +142,18 @@ describe('aggregateGroupStatus (AC #7)', () => {
 		expect(status).toBe('error');
 	});
 
+	// onError=continue surfaces `task.error` on the offending node (via
+	// nodeHasIssuesById) even when the overall workflow succeeds. The
+	// single-node visual also marks that node as errored.
+	it('returns error when a member errored with onError=continue (task.error set, status success)', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeHasIssuesById: { a: true },
+			nodeExecutionStatusById: { a: 'success', b: 'success' },
+		});
+		expect(status).toBe('error');
+	});
+
 	it('returns error when any member has executionStatus error or crashed', () => {
 		expect(
 			aggregateGroupStatus(['a'], {
