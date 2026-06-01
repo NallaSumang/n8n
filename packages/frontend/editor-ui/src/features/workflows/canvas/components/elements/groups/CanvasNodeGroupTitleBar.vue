@@ -4,6 +4,7 @@ import { useI18n } from '@n8n/i18n';
 import { N8nIconButton, N8nInlineTextEdit, N8nTooltip } from '@n8n/design-system';
 import { Handle, Position, useVueFlow } from '@vue-flow/core';
 import KeyboardShortcutTooltip from '@/app/components/KeyboardShortcutTooltip.vue';
+import CanvasNodeStatusMark from '../nodes/render-types/parts/CanvasNodeStatusMark.vue';
 import {
 	GROUP_HEADER_HEIGHT as HEADER_HEIGHT,
 	GROUP_PADDING_Y_BOTTOM as PADDING_Y_BOTTOM,
@@ -47,6 +48,8 @@ const titleText = useTemplateRef<HTMLElement>('titleText');
 
 const group = computed(() => props.data.group);
 const isCollapsed = computed(() => props.data.isCollapsed);
+const groupStatus = computed(() => props.data.groupStatus);
+const runDataIterations = computed(() => props.data.runDataIterations);
 
 const frameStyle = computed(() => ({
 	top: `${HEADER_HEIGHT}px`,
@@ -131,7 +134,14 @@ function onWrapperPointerDown(event: PointerEvent) {
 
 <template>
 	<div
-		:class="[$style.wrapper, isCollapsed ? $style.collapsed : '', selected ? $style.selected : '']"
+		:class="[
+			$style.wrapper,
+			isCollapsed ? $style.collapsed : '',
+			selected ? $style.selected : '',
+			groupStatus === 'success' ? $style.success : '',
+			groupStatus === 'error' ? $style.error : '',
+			groupStatus === 'running' ? $style.running : '',
+		]"
 		:style="{
 			width: '100%',
 			height: `${HEADER_HEIGHT}px`,
@@ -213,6 +223,20 @@ function onWrapperPointerDown(event: PointerEvent) {
 						</div>
 					</N8nTooltip>
 				</div>
+				<div
+					v-if="groupStatus === 'success'"
+					:class="$style.statusIcons"
+					data-test-id="canvas-node-group-status-success"
+				>
+					<CanvasNodeStatusMark status="success" :iterations="runDataIterations" />
+				</div>
+				<div
+					v-else-if="groupStatus === 'error'"
+					:class="$style.statusIcons"
+					data-test-id="canvas-node-group-status-error"
+				>
+					<CanvasNodeStatusMark status="error" />
+				</div>
 			</div>
 		</div>
 
@@ -254,7 +278,27 @@ function onWrapperPointerDown(event: PointerEvent) {
 		box-shadow: 0 0 0 calc(6px * var(--canvas-zoom-compensation-factor, 1))
 			var(--canvas--color--selected-transparent);
 	}
+
+	// Status only manifests when the group is collapsed — when expanded
+	// the members render their own outlines.
+	.wrapper.collapsed.success & {
+		@include styles.status-success;
+	}
+	.wrapper.collapsed.error & {
+		@include styles.status-error;
+	}
+	.wrapper.collapsed.running & {
+		@include styles.status-running-border;
+	}
 }
+
+/* stylelint-disable */
+.wrapper.collapsed.running .titleBar::after {
+	@include styles.status-animated-after;
+	@include styles.status-running-animation;
+	border-radius: var(--radius--lg);
+}
+/* stylelint-enable */
 
 .content {
 	display: flex;
@@ -288,6 +332,13 @@ function onWrapperPointerDown(event: PointerEvent) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+.statusIcons {
+	display: flex;
+	align-items: center;
+	margin-left: var(--spacing--xs);
+	flex-shrink: 0;
 }
 
 .toolbar {

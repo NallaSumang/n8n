@@ -5,6 +5,7 @@ import type {
 	CanvasConnectionData,
 	CanvasGroupNode,
 	CanvasGroupViewState,
+	GroupExecutionStatus,
 } from '../canvas.types';
 import {
 	CANVAS_NODE_GROUP_HANDLE_LEFT,
@@ -123,6 +124,75 @@ export function computeMemberRectFromStore(
 	};
 }
 
+export interface GroupAggregateInputs {
+	nodeExecutionRunningById: Record<string, boolean>;
+	nodeExecutionWaitingForNextById: Record<string, boolean>;
+	nodeHasIssuesById: Record<string, boolean>;
+	nodeExecutionStatusById: Record<string, string | undefined>;
+	nodeExecutionRunDataIterationsById: Record<string, number>;
+}
+
+/**
+ * Aggregate per-member execution state into a single group-level status.
+ *
+ * Priority:
+ * - `running`   if any member is running or waiting-for-next.
+ * - `error`     if any member has issues or executionStatus 'error' / 'crashed'.
+ * - `success`   only if at least one member is 'success' and every other
+ *               member is 'success' or 'unknown' (didn't run — e.g. an
+ *               untaken conditional branch).
+ * - `undefined` (idle) otherwise, including the all-`unknown` case.
+ */
+export function aggregateGroupStatus(
+	memberIds: string[],
+	{
+		nodeExecutionRunningById,
+		nodeExecutionWaitingForNextById,
+		nodeHasIssuesById,
+		nodeExecutionStatusById,
+	}: GroupAggregateInputs,
+): GroupExecutionStatus {
+	let anySuccess = false;
+	let anyError = false;
+	let anyOther = false;
+
+	for (const id of memberIds) {
+		if (nodeExecutionRunningById[id] || nodeExecutionWaitingForNextById[id]) {
+			return 'running';
+		}
+		const status = nodeExecutionStatusById[id];
+		if (nodeHasIssuesById[id] || status === 'error' || status === 'crashed') {
+			anyError = true;
+			continue;
+		}
+		if (status === 'success') {
+			anySuccess = true;
+		} else if (status !== undefined && status !== 'unknown') {
+			anyOther = true;
+		}
+	}
+
+	if (anyError) return 'error';
+	if (anySuccess && !anyOther) return 'success';
+	return undefined;
+}
+
+/**
+ * Sum runData iteration counts across a group's members. Used for the small
+ * iteration-count badge next to the success ✓.
+ */
+export function aggregateRunDataIterations(
+	memberIds: string[],
+	nodeExecutionRunDataIterationsById: Record<string, number>,
+): number {
+	let max = 0;
+	for (const id of memberIds) {
+		const iter = nodeExecutionRunDataIterationsById[id] ?? 0;
+		if (iter > max) max = iter;
+	}
+	return max;
+}
+
 export interface MapGroupsToVueFlowNodesInputs {
 	allGroups: IWorkflowGroup[];
 	getNodeById: (id: string) => INodeUi | undefined;
@@ -130,6 +200,8 @@ export interface MapGroupsToVueFlowNodesInputs {
 	isGroupCollapsed: (id: string) => boolean;
 	autofocusGroupId: string | null;
 	readOnly: boolean;
+	aggregates: GroupAggregateInputs;
+	nodeExecutionRunDataIterationsById: Record<string, number>;
 }
 
 /**
@@ -143,6 +215,8 @@ export function mapGroupsToVueFlowNodes({
 	isGroupCollapsed,
 	autofocusGroupId,
 	readOnly,
+	aggregates,
+	nodeExecutionRunDataIterationsById,
 }: MapGroupsToVueFlowNodesInputs): CanvasGroupNode[] {
 	const out: CanvasGroupNode[] = [];
 	for (const group of allGroups) {
@@ -158,6 +232,11 @@ export function mapGroupsToVueFlowNodes({
 			memberRect,
 			isCollapsed: collapsed,
 			autofocusTitle: autofocusGroupId === group.id,
+			groupStatus: aggregateGroupStatus(group.nodeIds, aggregates),
+			runDataIterations: aggregateRunDataIterations(
+				group.nodeIds,
+				nodeExecutionRunDataIterationsById,
+			),
 		};
 
 		const titleBar = titleBarFromMemberRect(memberRect);

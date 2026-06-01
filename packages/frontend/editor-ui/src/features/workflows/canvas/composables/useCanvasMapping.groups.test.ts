@@ -3,6 +3,8 @@ import type { IWorkflowGroup } from 'n8n-workflow';
 import type { INodeUi } from '@/Interface';
 import type { CanvasConnection } from '../canvas.types';
 import {
+	aggregateGroupStatus,
+	aggregateRunDataIterations,
 	buildCollapsedGroupByNodeId,
 	computeMemberRectFromStore,
 	mapGroupsToVueFlowNodes,
@@ -47,6 +49,14 @@ function nodeStore(...nodes: INodeUi[]) {
 	const map = new Map(nodes.map((n) => [n.id, n]));
 	return (id: string) => map.get(id);
 }
+
+const EMPTY_AGG = {
+	nodeExecutionRunningById: {},
+	nodeExecutionWaitingForNextById: {},
+	nodeHasIssuesById: {},
+	nodeExecutionStatusById: {},
+	nodeExecutionRunDataIterationsById: {},
+};
 
 describe('computeMemberRectFromStore', () => {
 	// Same defaults used by the design system canvas grid (16 × 6).
@@ -106,6 +116,102 @@ describe('computeMemberRectFromStore', () => {
 	});
 });
 
+describe('aggregateGroupStatus (AC #7)', () => {
+	it('returns running when any member is running', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionRunningById: { a: true },
+		});
+		expect(status).toBe('running');
+	});
+
+	it('returns running when any member is waitingForNext', () => {
+		const status = aggregateGroupStatus(['a'], {
+			...EMPTY_AGG,
+			nodeExecutionWaitingForNextById: { a: true },
+		});
+		expect(status).toBe('running');
+	});
+
+	it('returns error when any member has issues', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeHasIssuesById: { b: true },
+		});
+		expect(status).toBe('error');
+	});
+
+	it('returns error when any member has executionStatus error or crashed', () => {
+		expect(
+			aggregateGroupStatus(['a'], {
+				...EMPTY_AGG,
+				nodeExecutionStatusById: { a: 'error' },
+			}),
+		).toBe('error');
+		expect(
+			aggregateGroupStatus(['a'], {
+				...EMPTY_AGG,
+				nodeExecutionStatusById: { a: 'crashed' },
+			}),
+		).toBe('error');
+	});
+
+	it('returns success when all members are success', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionStatusById: { a: 'success', b: 'success' },
+		});
+		expect(status).toBe('success');
+	});
+
+	it('returns success when one member is success and others never ran (unknown) — AC #7 conditional branching', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionStatusById: { a: 'success', b: 'unknown' },
+		});
+		expect(status).toBe('success');
+	});
+
+	it('returns undefined (idle) when all members are unknown — workflow has never executed', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionStatusById: { a: 'unknown', b: 'unknown' },
+		});
+		expect(status).toBeUndefined();
+	});
+
+	it('returns undefined when no member status is set', () => {
+		const status = aggregateGroupStatus(['a', 'b'], EMPTY_AGG);
+		expect(status).toBeUndefined();
+	});
+
+	it('running beats error', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionRunningById: { a: true },
+			nodeHasIssuesById: { b: true },
+		});
+		expect(status).toBe('running');
+	});
+
+	it('error beats success', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionStatusById: { a: 'success', b: 'error' },
+		});
+		expect(status).toBe('error');
+	});
+});
+
+describe('aggregateRunDataIterations', () => {
+	it('returns the maximum iteration count across members', () => {
+		expect(aggregateRunDataIterations(['a', 'b'], { a: 1, b: 5 })).toBe(5);
+	});
+	it('returns 0 when nothing is set', () => {
+		expect(aggregateRunDataIterations(['a'], {})).toBe(0);
+	});
+});
+
 describe('mapGroupsToVueFlowNodes', () => {
 	const group: IWorkflowGroup = { id: 'g1', name: 'G', nodeIds: ['a', 'b'] };
 
@@ -117,6 +223,8 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => isCollapsed,
 			autofocusGroupId: null,
 			readOnly: false,
+			aggregates: EMPTY_AGG,
+			nodeExecutionRunDataIterationsById: {},
 		});
 	}
 
@@ -172,6 +280,8 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => true,
 			autofocusGroupId: null,
 			readOnly: true,
+			aggregates: EMPTY_AGG,
+			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].selectable).toBe(false);
 	});
@@ -184,6 +294,8 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => true,
 			autofocusGroupId: null,
 			readOnly: false,
+			aggregates: EMPTY_AGG,
+			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out).toHaveLength(0);
 	});
@@ -196,6 +308,8 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => true,
 			autofocusGroupId: null,
 			readOnly: true,
+			aggregates: EMPTY_AGG,
+			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].draggable).toBe(false);
 	});
@@ -221,6 +335,8 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => true,
 			autofocusGroupId: 'g1',
 			readOnly: false,
+			aggregates: EMPTY_AGG,
+			nodeExecutionRunDataIterationsById: {},
 		});
 		expect(out[0].data?.autofocusTitle).toBe(true);
 	});

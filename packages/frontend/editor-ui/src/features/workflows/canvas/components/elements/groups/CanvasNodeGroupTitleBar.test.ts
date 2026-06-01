@@ -29,7 +29,7 @@ vi.mock('@vue-flow/core', () => ({
 
 import CanvasNodeGroupTitleBar from './CanvasNodeGroupTitleBar.vue';
 import { GROUP_HEADER_HEIGHT } from '../../../stores/canvasNodeGroups.constants';
-import type { CanvasGroupViewState } from '../../../canvas.types';
+import type { CanvasGroupViewState, GroupExecutionStatus } from '../../../canvas.types';
 
 const baseGroup: IWorkflowGroup = {
 	id: 'g1',
@@ -43,6 +43,8 @@ function makeData(overrides: Partial<CanvasGroupViewState> = {}): CanvasGroupVie
 		memberRect: { x: 0, y: 0, width: 500, height: 100 },
 		isCollapsed: true,
 		autofocusTitle: false,
+		groupStatus: undefined,
+		runDataIterations: 0,
 		...overrides,
 	};
 }
@@ -127,6 +129,40 @@ describe('CanvasNodeGroupTitleBar', () => {
 		it('hides the frame when collapsed', () => {
 			const wrapper = render({ data: makeData({ isCollapsed: true }) });
 			expect(wrapper.queryByTestId('canvas-node-group-frame')).toBeNull();
+		});
+	});
+
+	describe('execution-status classes', () => {
+		it('applies no status class when groupStatus is undefined (idle)', () => {
+			const wrapper = render({ data: makeData({ groupStatus: undefined }) });
+			const root = wrapper.getByTestId('canvas-node-group');
+			// No status icon and no .success / .error / .running class semantics.
+			expect(wrapper.queryByTestId('canvas-node-group-status-success')).toBeNull();
+			expect(wrapper.queryByTestId('canvas-node-group-status-error')).toBeNull();
+			// status classes are CSS module hashed; we can only check via test ids.
+			expect(root).toBeTruthy();
+		});
+
+		it('shows success icon when groupStatus is success', () => {
+			const wrapper = render({
+				data: makeData({ groupStatus: 'success' as GroupExecutionStatus }),
+			});
+			expect(wrapper.getByTestId('canvas-node-group-status-success')).toBeTruthy();
+		});
+
+		it('shows error icon when groupStatus is error', () => {
+			const wrapper = render({
+				data: makeData({ groupStatus: 'error' as GroupExecutionStatus }),
+			});
+			expect(wrapper.getByTestId('canvas-node-group-status-error')).toBeTruthy();
+		});
+
+		it('shows iteration count on success when runDataIterations > 1', () => {
+			const wrapper = render({
+				data: makeData({ groupStatus: 'success', runDataIterations: 3 }),
+			});
+			const icon = wrapper.getByTestId('canvas-node-group-status-success');
+			expect(icon).toHaveTextContent('3');
 		});
 	});
 

@@ -139,11 +139,15 @@ export const CANVAS_NODE_GROUP_ID_PREFIX = 'group:';
 export const CANVAS_NODE_GROUP_HANDLE_LEFT = 'left';
 export const CANVAS_NODE_GROUP_HANDLE_RIGHT = 'right';
 
+export type GroupExecutionStatus = 'running' | 'error' | 'success' | undefined;
+
 export interface CanvasGroupViewState {
 	group: IWorkflowGroup;
 	memberRect: { x: number; y: number; width: number; height: number };
 	isCollapsed: boolean;
 	autofocusTitle: boolean;
+	groupStatus: GroupExecutionStatus;
+	runDataIterations: number;
 }
 
 export type CanvasGroupNode = Node<CanvasGroupViewState>;
