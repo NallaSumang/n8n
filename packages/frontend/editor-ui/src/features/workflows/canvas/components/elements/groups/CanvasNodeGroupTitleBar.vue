@@ -38,6 +38,7 @@ const emit = defineEmits<{
 	'update:name': [id: string, name: string];
 	'title:focused': [id: string];
 	ungroup: [id: string];
+	toggle: [id: string];
 }>();
 
 const i18n = useI18n();
@@ -45,6 +46,7 @@ const titleEdit = useTemplateRef<InstanceType<typeof N8nInlineTextEdit>>('titleE
 const titleText = useTemplateRef<HTMLElement>('titleText');
 
 const group = computed(() => props.data.group);
+const isCollapsed = computed(() => props.data.isCollapsed);
 
 const frameStyle = computed(() => ({
 	top: `${HEADER_HEIGHT}px`,
@@ -63,7 +65,7 @@ function updateTruncated() {
 }
 
 watch(
-	() => [group.value.name, props.data.memberRect.width],
+	() => [group.value.name, props.data.memberRect.width, isCollapsed.value],
 	async () => {
 		await nextTick();
 		updateTruncated();
@@ -79,6 +81,10 @@ function onUngroupClick() {
 	emit('ungroup', group.value.id);
 }
 
+function onToggleClick() {
+	emit('toggle', group.value.id);
+}
+
 async function focusTitleEdit() {
 	if (!props.data.autofocusTitle || props.readOnly) return;
 	await nextTick();
@@ -92,6 +98,12 @@ watch(
 		void focusTitleEdit();
 	},
 	{ immediate: true },
+);
+
+const toggleTooltip = computed(() =>
+	isCollapsed.value
+		? i18n.baseText('canvas.nodeGroup.expand')
+		: i18n.baseText('canvas.nodeGroup.collapse'),
 );
 
 const { getSelectedNodes, removeSelectedNodes } = useVueFlow();
@@ -119,7 +131,7 @@ function onWrapperPointerDown(event: PointerEvent) {
 
 <template>
 	<div
-		:class="[$style.wrapper, selected ? $style.selected : '']"
+		:class="[$style.wrapper, isCollapsed ? $style.collapsed : '', selected ? $style.selected : '']"
 		:style="{
 			width: '100%',
 			height: `${HEADER_HEIGHT}px`,
@@ -168,6 +180,18 @@ function onWrapperPointerDown(event: PointerEvent) {
 			</div>
 
 			<div :class="$style.content" data-test-id="canvas-node-group-header">
+				<N8nTooltip :content="toggleTooltip" :show-after="500" placement="bottom">
+					<N8nIconButton
+						class="nodrag"
+						:class="$style.toggle"
+						variant="ghost"
+						size="small"
+						:icon="isCollapsed ? 'chevrons-up-down' : 'chevrons-down-up'"
+						:aria-label="toggleTooltip"
+						data-test-id="canvas-node-group-toggle"
+						@click.stop="onToggleClick"
+					/>
+				</N8nTooltip>
 				<div :class="$style.title" data-test-id="canvas-node-group-title">
 					<N8nTooltip
 						:content="group.name"
@@ -192,7 +216,12 @@ function onWrapperPointerDown(event: PointerEvent) {
 			</div>
 		</div>
 
-		<div :class="$style.frame" :style="frameStyle" data-test-id="canvas-node-group-frame" />
+		<div
+			v-if="!isCollapsed"
+			:class="$style.frame"
+			:style="frameStyle"
+			data-test-id="canvas-node-group-frame"
+		/>
 	</div>
 </template>
 
@@ -216,6 +245,10 @@ function onWrapperPointerDown(event: PointerEvent) {
 	border-radius: var(--radius--lg) var(--radius--lg) 0 0;
 	box-sizing: border-box;
 
+	.wrapper.collapsed & {
+		border-radius: var(--radius--lg);
+	}
+
 	.wrapper.selected & {
 		/* stylelint-disable-next-line @n8n/css-var-naming */
 		box-shadow: 0 0 0 calc(6px * var(--canvas-zoom-compensation-factor, 1))
@@ -230,6 +263,11 @@ function onWrapperPointerDown(event: PointerEvent) {
 	height: 100%;
 	padding: 0 var(--spacing--sm);
 	overflow: hidden;
+}
+
+.toggle {
+	margin-right: var(--spacing--sm);
+	flex-shrink: 0;
 }
 
 .title {

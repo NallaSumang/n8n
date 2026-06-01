@@ -75,6 +75,7 @@ import CanvasNodeGroupTitleBar from './elements/groups/CanvasNodeGroupTitleBar.v
 import CanvasSelectionToolbar from './elements/selection/CanvasSelectionToolbar.vue';
 import { useCanvasNodeGroupActions } from '../composables/useCanvasNodeGroupActions';
 import { useCanvasNodeGroupDrag } from '../composables/useCanvasNodeGroupDrag';
+import { useCanvasNodeGroupView } from '../composables/useCanvasNodeGroupView';
 import { useExperimentalNdvStore } from '../experimental/experimentalNdv.store';
 import { type ContextMenuAction } from '@/features/shared/contextMenu/composables/useContextMenuItems';
 import { useFocusedNodesStore } from '@/features/ai/assistant/focusedNodes.store';
@@ -254,6 +255,10 @@ const isPaneReady = ref(false);
 // so action callbacks here mutate the same ref
 const injectedAutofocusRef = inject<Ref<string | null> | null>('canvasNodeGroupAutofocus', null);
 const nodeGroupIdToAutofocusTitle = injectedAutofocusRef ?? ref<string | null>(null);
+const injectedNodeGroupView = inject<ReturnType<typeof useCanvasNodeGroupView> | null>(
+	'canvasNodeGroupView',
+	null,
+);
 
 const classes = computed(() => ({
 	[$style.canvas]: true,
@@ -564,6 +569,10 @@ function onSelectionDragStart(event: NodeDragEvent) {
 
 function onSelectionDrag(event: NodeDragEvent) {
 	groupDrag.onSelectionDrag(event);
+}
+
+function onCanvasGroupToggle(groupId: string) {
+	injectedNodeGroupView?.toggleCollapsed(groupId);
 }
 
 function onCanvasGroupNameUpdate(groupId: string, name: string) {
@@ -1262,6 +1271,7 @@ defineExpose({
 				v-bind="nodeProps"
 				:data="groupNodeDataById[nodeProps.id]"
 				:read-only="readOnly || suppressInteraction"
+				@toggle="onCanvasGroupToggle"
 				@update:name="onCanvasGroupNameUpdate"
 				@title:focused="onNodeGroupTitleFocused"
 				@ungroup="onCanvasGroupUngroup"

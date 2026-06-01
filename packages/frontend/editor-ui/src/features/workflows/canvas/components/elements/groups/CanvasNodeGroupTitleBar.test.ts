@@ -41,6 +41,7 @@ function makeData(overrides: Partial<CanvasGroupViewState> = {}): CanvasGroupVie
 	return {
 		group: baseGroup,
 		memberRect: { x: 0, y: 0, width: 500, height: 100 },
+		isCollapsed: true,
 		autofocusTitle: false,
 		...overrides,
 	};
@@ -64,11 +65,44 @@ describe('CanvasNodeGroupTitleBar', () => {
 		});
 	}
 
-	describe('height invariant; nodrag on interactive children', () => {
-		it('has the fixed header height', () => {
+	describe('chevron caption and icon by state', () => {
+		it('renders chevrons-up-down with Expand label when collapsed', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: true }) });
+			const toggle = wrapper.getByTestId('canvas-node-group-toggle');
+			expect(toggle.getAttribute('aria-label')).toBe('Expand');
+			expect(toggle.querySelector('svg')).toBeTruthy();
+		});
+
+		it('renders chevrons-down-up with Collapse label when expanded', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: false }) });
+			const toggle = wrapper.getByTestId('canvas-node-group-toggle');
+			expect(toggle.getAttribute('aria-label')).toBe('Collapse');
+		});
+
+		it('emits toggle when chevron is clicked', async () => {
 			const wrapper = render();
+			await fireEvent.click(wrapper.getByTestId('canvas-node-group-toggle'));
+			expect(wrapper.emitted().toggle).toEqual([['g1']]);
+		});
+	});
+
+	describe('height invariant; nodrag on interactive children', () => {
+		it('has the fixed header height when collapsed', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: true }) });
 			const el = wrapper.getByTestId('canvas-node-group') as HTMLElement;
 			expect(el.style.height).toBe(`${GROUP_HEADER_HEIGHT}px`);
+		});
+
+		it('has the fixed header height when expanded', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: false }) });
+			const el = wrapper.getByTestId('canvas-node-group') as HTMLElement;
+			expect(el.style.height).toBe(`${GROUP_HEADER_HEIGHT}px`);
+		});
+
+		it('chevron carries nodrag so VueFlow does not drag on click', () => {
+			const wrapper = render();
+			const toggle = wrapper.getByTestId('canvas-node-group-toggle');
+			expect(toggle.classList.contains('nodrag')).toBe(true);
 		});
 
 		it('ungroup button carries nodrag', () => {
@@ -84,16 +118,21 @@ describe('CanvasNodeGroupTitleBar', () => {
 		});
 	});
 
-	describe('frame', () => {
-		it('renders the frame around the members', () => {
-			const wrapper = render();
+	describe('frame visibility', () => {
+		it('renders the frame when expanded', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: false }) });
 			expect(wrapper.queryByTestId('canvas-node-group-frame')).toBeTruthy();
+		});
+
+		it('hides the frame when collapsed', () => {
+			const wrapper = render({ data: makeData({ isCollapsed: true }) });
+			expect(wrapper.queryByTestId('canvas-node-group-frame')).toBeNull();
 		});
 	});
 
 	describe('title rename + ungroup parity with old overlay', () => {
 		it('emits update:name on commit', async () => {
-			const wrapper = render();
+			const wrapper = render({ data: makeData({ isCollapsed: false }) });
 			await fireEvent.click(wrapper.getByTestId('inline-edit-preview'));
 			const input = wrapper.getByTestId('inline-edit-input') as HTMLInputElement;
 			await fireEvent.update(input, 'Renamed');

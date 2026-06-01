@@ -9,6 +9,7 @@ import { throttledRef } from '@vueuse/core';
 import { computed, provide, ref, useCssModule, useTemplateRef } from 'vue';
 import type { CanvasEventBusEvents } from '../canvas.types';
 import { useCanvasMapping } from '../composables/useCanvasMapping';
+import { useCanvasNodeGroupView } from '../composables/useCanvasNodeGroupView';
 import Canvas from './Canvas.vue';
 import { injectWorkflowDocumentStore } from '@/app/stores/workflowDocument.store';
 import { useWorkflowDocumentRenderData } from '@/app/stores/workflowDocument/useWorkflowDocumentRenderData';
@@ -59,6 +60,11 @@ const nodes = computed(() => {
 });
 const connections = computed(() => workflowDocumentStore.value.connectionsBySourceNode);
 
+const allGroupsRef = computed(() => workflowDocumentStore.value.allGroups);
+const nodeGroupView = useCanvasNodeGroupView({
+	allGroups: allGroupsRef,
+	onNodeGroupsChange: (handler) => workflowDocumentStore.value.onNodeGroupsChange(handler),
+});
 const nodeGroupIdToAutofocusTitle = ref<string | null>(null);
 const readOnlyRef = computed(() => props.readOnly ?? false);
 const suppressInteractionRef = computed(() => props.suppressInteraction ?? false);
@@ -76,6 +82,7 @@ const {
 	connections,
 	workflowObject,
 	renderData,
+	groupView: nodeGroupView,
 	nodeGroupIdToAutofocusTitle,
 	readOnly: readOnlyRef,
 	suppressInteraction: suppressInteractionRef,
@@ -84,6 +91,7 @@ const {
 
 const mappedNodes = computed(() => [...mappedWorkflowNodes.value, ...mappedGroupNodes.value]);
 
+provide('canvasNodeGroupView', nodeGroupView);
 provide('canvasNodeGroupAutofocus', nodeGroupIdToAutofocusTitle);
 
 const initialFitViewDone = ref(false); // Workaround for https://github.com/bcakmakoglu/vue-flow/issues/1636
