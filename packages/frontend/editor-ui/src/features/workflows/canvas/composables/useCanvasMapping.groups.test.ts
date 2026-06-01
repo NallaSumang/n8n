@@ -53,6 +53,7 @@ function nodeStore(...nodes: INodeUi[]) {
 const EMPTY_AGG = {
 	nodeExecutionRunningById: {},
 	nodeExecutionWaitingForNextById: {},
+	nodeExecutionWaitingById: {},
 	nodeHasIssuesById: {},
 	nodeExecutionStatusById: {},
 	memberIterationsById: {},
@@ -185,6 +186,22 @@ describe('aggregateGroupStatus (AC #7)', () => {
 		expect(status).toBeUndefined();
 	});
 
+	it('returns waiting when any member has a waiting reason (form/webhook/etc.)', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionWaitingById: { a: 'waiting for webhook' },
+		});
+		expect(status).toBe('waiting');
+	});
+
+	it('returns waiting when any member has executionStatus waiting', () => {
+		const status = aggregateGroupStatus(['a'], {
+			...EMPTY_AGG,
+			nodeExecutionStatusById: { a: 'waiting' },
+		});
+		expect(status).toBe('waiting');
+	});
+
 	it('running beats error', () => {
 		const status = aggregateGroupStatus(['a', 'b'], {
 			...EMPTY_AGG,
@@ -200,6 +217,15 @@ describe('aggregateGroupStatus (AC #7)', () => {
 			nodeExecutionStatusById: { a: 'success', b: 'error' },
 		});
 		expect(status).toBe('error');
+	});
+
+	it('waiting beats running — mirrors single-node CSS rule order', () => {
+		const status = aggregateGroupStatus(['a', 'b'], {
+			...EMPTY_AGG,
+			nodeExecutionRunningById: { a: true },
+			nodeExecutionWaitingById: { b: 'waiting for form' },
+		});
+		expect(status).toBe('waiting');
 	});
 });
 

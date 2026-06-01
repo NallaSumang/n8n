@@ -164,6 +164,22 @@ describe('CanvasNodeGroupTitleBar', () => {
 			const icon = wrapper.getByTestId('canvas-node-group-status-success');
 			expect(icon).toHaveTextContent('3');
 		});
+
+		it('applies a hashed `running` class when executionStatus is running', () => {
+			const wrapper = render({
+				data: makeData({ executionStatus: 'running' as GroupExecutionStatus }),
+			});
+			const root = wrapper.getByTestId('canvas-node-group');
+			expect([...root.classList].some((c) => /running/i.test(c))).toBe(true);
+		});
+
+		it('applies a hashed `waiting` class when executionStatus is waiting', () => {
+			const wrapper = render({
+				data: makeData({ executionStatus: 'waiting' as GroupExecutionStatus }),
+			});
+			const root = wrapper.getByTestId('canvas-node-group');
+			expect([...root.classList].some((c) => /waiting/i.test(c))).toBe(true);
+		});
 	});
 
 	describe('title rename + ungroup parity with old overlay', () => {

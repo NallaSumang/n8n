@@ -141,6 +141,7 @@ function onWrapperPointerDown(event: PointerEvent) {
 			executionStatus === 'success' ? $style.success : '',
 			executionStatus === 'error' ? $style.error : '',
 			executionStatus === 'running' ? $style.running : '',
+			executionStatus === 'waiting' ? $style.waiting : '',
 		]"
 		:style="{
 			width: '100%',
@@ -290,13 +291,22 @@ function onWrapperPointerDown(event: PointerEvent) {
 	.wrapper.collapsed.running & {
 		@include styles.status-running-border;
 	}
+	.wrapper.collapsed.waiting & {
+		@include styles.status-waiting-border;
+	}
 }
 
 /* stylelint-disable */
-.wrapper.collapsed.running .titleBar::after {
+.wrapper.collapsed.running .titleBar::after,
+.wrapper.collapsed.waiting .titleBar::after {
 	@include styles.status-animated-after;
-	@include styles.status-running-animation;
 	border-radius: var(--radius--lg);
+}
+.wrapper.collapsed.running .titleBar::after {
+	@include styles.status-running-animation;
+}
+.wrapper.collapsed.waiting .titleBar::after {
+	@include styles.status-waiting-animation;
 }
 /* stylelint-enable */
 

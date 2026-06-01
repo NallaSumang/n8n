@@ -127,6 +127,7 @@ export function computeMemberRectFromStore(
 export interface GroupAggregateInputs {
 	nodeExecutionRunningById: Record<string, boolean>;
 	nodeExecutionWaitingForNextById: Record<string, boolean>;
+	nodeExecutionWaitingById: Record<string, string | undefined>;
 	nodeHasIssuesById: Record<string, boolean>;
 	nodeExecutionStatusById: Record<string, ExecutionStatus | undefined>;
 	memberIterationsById: Record<string, number>;
@@ -135,12 +136,20 @@ export interface GroupAggregateInputs {
 /**
  * Aggregate per-member execution state into a single group-level status.
  *
- * Priority:
- * - `running`   if any member is running or waiting-for-next.
- * - `error`     if any member has issues or executionStatus 'error' / 'crashed'.
- * - `success`   only if at least one member is 'success' and every other
- *               member is 'success' or 'unknown' (didn't run — e.g. an
- *               untaken conditional branch).
+ * Priority mirrors the single-node CSS rule order (later rules win), so the
+ * group surfaces the same dominant state a user would see on a member node:
+ *   waiting > running > error > success > idle
+ *
+ * - `waiting`   any member is paused waiting for input (form, webhook, etc.).
+ * - `running`   any member is running or queued to start next.
+ * - `error`     any member has issues or executionStatus 'error' / 'crashed'.
+ *               NB: a member that errored with `onError=continue` still
+ *               contributes here — that matches the single-node visual,
+ *               which also flags the offending node despite the workflow
+ *               succeeding overall.
+ * - `success`   at least one member is 'success' and every other member is
+ *               'success' or 'unknown' (didn't run — e.g. an untaken
+ *               conditional branch).
  * - `undefined` (idle) otherwise, including the all-`unknown` case.
  */
 export function aggregateGroupStatus(
@@ -148,19 +157,28 @@ export function aggregateGroupStatus(
 	{
 		nodeExecutionRunningById,
 		nodeExecutionWaitingForNextById,
+		nodeExecutionWaitingById,
 		nodeHasIssuesById,
 		nodeExecutionStatusById,
 	}: GroupAggregateInputs,
 ): GroupExecutionStatus {
+	let anyWaiting = false;
+	let anyRunning = false;
 	let anySuccess = false;
 	let anyError = false;
 	let anyOther = false;
 
 	for (const id of memberIds) {
-		if (nodeExecutionRunningById[id] || nodeExecutionWaitingForNextById[id]) {
-			return 'running';
-		}
 		const status = nodeExecutionStatusById[id];
+
+		if (nodeExecutionWaitingById[id] || status === 'waiting') {
+			anyWaiting = true;
+			continue;
+		}
+		if (nodeExecutionRunningById[id] || nodeExecutionWaitingForNextById[id]) {
+			anyRunning = true;
+			continue;
+		}
 		if (nodeHasIssuesById[id] || status === 'error' || status === 'crashed') {
 			anyError = true;
 			continue;
@@ -172,6 +190,8 @@ export function aggregateGroupStatus(
 		}
 	}
 
+	if (anyWaiting) return 'waiting';
+	if (anyRunning) return 'running';
 	if (anyError) return 'error';
 	if (anySuccess && !anyOther) return 'success';
 	return undefined;

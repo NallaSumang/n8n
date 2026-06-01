@@ -634,6 +634,7 @@ export function useCanvasMapping({
 			aggregates: {
 				nodeExecutionRunningById: nodeExecutionRunningById.value,
 				nodeExecutionWaitingForNextById: nodeExecutionWaitingForNextById.value,
+				nodeExecutionWaitingById: nodeExecutionWaitingById.value,
 				nodeHasIssuesById: nodeHasIssuesById.value,
 				nodeExecutionStatusById: nodeExecutionStatusById.value,
 				memberIterationsById,

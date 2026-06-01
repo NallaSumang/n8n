@@ -139,7 +139,7 @@ export const CANVAS_NODE_GROUP_ID_PREFIX = 'group:';
 export const CANVAS_NODE_GROUP_HANDLE_LEFT = 'left';
 export const CANVAS_NODE_GROUP_HANDLE_RIGHT = 'right';
 
-export type GroupExecutionStatus = 'running' | 'error' | 'success' | undefined;
+export type GroupExecutionStatus = 'waiting' | 'running' | 'error' | 'success' | undefined;
 
 export interface CanvasGroupViewState {
 	group: IWorkflowGroup;
