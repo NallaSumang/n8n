@@ -79,6 +79,8 @@ export function createCanvasGroupElement({
 	isCollapsed = true,
 	autofocusTitle = false,
 	memberRect = { x: 0, y: 0, width: 200, height: 100 },
+	executionStatus = undefined,
+	maxMemberIterations = 0,
 }: Partial<{
 	id: string;
 	name: string;
@@ -87,6 +89,8 @@ export function createCanvasGroupElement({
 	isCollapsed: boolean;
 	autofocusTitle: boolean;
 	memberRect: CanvasGroupViewState['memberRect'];
+	executionStatus: CanvasGroupViewState['executionStatus'];
+	maxMemberIterations: number;
 }> = {}): CanvasGroupNode {
 	return {
 		id: `${CANVAS_NODE_GROUP_ID_PREFIX}${id}`,
@@ -97,6 +101,8 @@ export function createCanvasGroupElement({
 			memberRect,
 			isCollapsed,
 			autofocusTitle,
+			executionStatus,
+			maxMemberIterations,
 		},
 	};
 }
