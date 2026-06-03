@@ -1,4 +1,5 @@
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
+import type { JSONSchema7 } from 'json-schema';
 import type { z } from 'zod';
 
 import type { Eval } from './eval';
@@ -124,7 +125,7 @@ export class Agent implements BuiltAgent, AgentBuilder {
 
 	private agentEvals: BuiltEval[] = [];
 
-	private outputSchema?: z.ZodType;
+	private outputSchema?: z.ZodType | JSONSchema7;
 
 	private checkpointStore?: 'memory' | CheckpointStore;
 
@@ -328,6 +329,10 @@ export class Agent implements BuiltAgent, AgentBuilder {
 	 * Set a structured output schema. When set, the agent's response will be
 	 * parsed into a typed object matching the schema, available as `result.output`.
 	 *
+	 * Accepts either a Zod schema or a raw JSON Schema. JSON Schema is useful
+	 * when the schema is supplied dynamically (e.g. entered in a workflow node)
+	 * and there is no Zod type to compile against.
+	 *
 	 * @example
 	 * ```typescript
 	 * const agent = new Agent('extractor')
@@ -342,7 +347,7 @@ export class Agent implements BuiltAgent, AgentBuilder {
 	 * console.log(result.structuredOutput); // { code: '...', explanation: '...' }
 	 * ```
 	 */
-	structuredOutput(schema: z.ZodType): this {
+	structuredOutput(schema: z.ZodType | JSONSchema7): this {
 		this.outputSchema = schema;
 		return this;
 	}
