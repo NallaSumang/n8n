@@ -43,6 +43,7 @@ import {
 import { OnPubSubEvent } from '@n8n/decorators';
 import { Container, Service } from '@n8n/di';
 import type { EntityManager } from '@n8n/typeorm';
+import type { JSONSchema7 } from 'json-schema';
 import {
 	deepCopy,
 	OperationalError,
@@ -1602,6 +1603,7 @@ export class AgentsService {
 		agentEntity: Agent,
 		credentialProvider: CredentialProvider,
 		userId: string,
+		outputSchema?: JSONSchema7,
 	): Promise<{ ok: boolean; agent?: BuiltAgent; error?: string }> {
 		if (!agentEntity.schema) {
 			return { ok: false, error: 'Agent has no JSON config. Create a config first.' };
@@ -1613,6 +1615,13 @@ export class AgentsService {
 				credentialProvider,
 				userId,
 			);
+			// Apply a per-call structured-output schema (e.g. supplied by a
+			// workflow node) before the builder is cast to its runtime view. The
+			// isolated agent is freshly built and uncached, so this never leaks
+			// into concurrent chat / integration executions.
+			if (outputSchema) {
+				reconstructed.structuredOutput(outputSchema);
+			}
 			return { ok: true, agent: reconstructed as BuiltAgent };
 		} catch (e) {
 			return {
@@ -1630,6 +1639,7 @@ export class AgentsService {
 		userId: string,
 		projectId: string,
 		telemetryUserId?: string,
+		outputSchema?: JSONSchema7,
 	): Promise<ExecuteAgentData> {
 		const agentEntity = await this.agentRepository.findByIdAndProjectId(agentId, projectId);
 		if (!agentEntity) {
@@ -1647,7 +1657,12 @@ export class AgentsService {
 			projectId,
 		);
 
-		const compiled = await this.compileIsolated(agentEntity, credentialProvider, userId);
+		const compiled = await this.compileIsolated(
+			agentEntity,
+			credentialProvider,
+			userId,
+			outputSchema,
+		);
 		if (!compiled.ok || !compiled.agent) {
 			throw new OperationalError(`Failed to compile agent: ${compiled.error ?? 'unknown error'}`);
 		}

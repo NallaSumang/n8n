@@ -812,6 +812,33 @@ describe('WorkflowExecuteAdditionalData', () => {
 				'user-1',
 				'project-1',
 				'user-1',
+				undefined,
+			);
+		});
+
+		it('forwards the outputSchema to executeForWorkflow', async () => {
+			const additionalData = mock<IWorkflowExecuteAdditionalData>({
+				userId: 'user-1',
+				projectId: 'project-1',
+				workflowId: 'workflow-1',
+			});
+			const outputSchema = {
+				type: 'object' as const,
+				properties: { answer: { type: 'string' as const } },
+				required: ['answer'],
+			};
+
+			await executeAgent(AGENT_ID, MESSAGE, EXEC_ID, THREAD_ID, additionalData, outputSchema);
+
+			expect(agentsService.executeForWorkflow).toHaveBeenCalledWith(
+				AGENT_ID,
+				MESSAGE,
+				EXEC_ID,
+				THREAD_ID,
+				'user-1',
+				'project-1',
+				'user-1',
+				outputSchema,
 			);
 		});
 
@@ -839,6 +866,7 @@ describe('WorkflowExecuteAdditionalData', () => {
 				THREAD_ID,
 				'owner-1',
 				'project-1',
+				undefined,
 				undefined,
 			);
 		});

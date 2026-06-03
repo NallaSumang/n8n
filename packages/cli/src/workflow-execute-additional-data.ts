@@ -8,6 +8,7 @@ import { GlobalConfig, SsrfProtectionConfig } from '@n8n/config';
 import { ExecutionRepository, WorkflowRepository } from '@n8n/db';
 import { Container } from '@n8n/di';
 import type { ServiceIdentifier } from '@n8n/di';
+import type { JSONSchema7 } from 'json-schema';
 import { ExternalSecretsProxy, WorkflowExecute } from 'n8n-core';
 import {
 	UnexpectedError,
@@ -267,6 +268,7 @@ export async function executeAgent(
 	executionId: string,
 	threadId: string,
 	additionalData: IWorkflowExecuteAdditionalData,
+	outputSchema?: JSONSchema7,
 ): Promise<ExecuteAgentData> {
 	let userId = additionalData.userId;
 	const telemetryUserId = additionalData.userId;
@@ -308,6 +310,7 @@ export async function executeAgent(
 		userId,
 		projectId,
 		telemetryUserId,
+		outputSchema,
 	);
 }
 
