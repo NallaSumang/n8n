@@ -383,6 +383,7 @@ describe('mapGroupsToVueFlowNodes', () => {
 			isGroupCollapsed: () => false,
 			autofocusGroupId: null,
 			readOnly: false,
+			aggregates: EMPTY_AGG,
 		});
 		expect(Math.abs(out[0].position.x % GRID_SIZE)).toBe(0);
 		expect(Math.abs(out[0].position.y % GRID_SIZE)).toBe(0);
