@@ -190,6 +190,7 @@ export const useEvaluationsWizardSidepanelStore = defineStore(
 			open,
 			close,
 			toggle,
+			reset: resetState,
 			setStep,
 			goNext,
 			goBack,
