@@ -43,6 +43,11 @@ export const useEvaluationsWizardSidepanelStore = defineStore(
 		// Pinned at dispatch — fetchTestRuns returns ALL of a workflow's runs,
 		// so "newest in map" can't identify the run THIS session started.
 		const activeRunId = ref<string | null>(null);
+		// The workflow the wizard state currently belongs to. Survives the pane's
+		// unmount (the focus panel closes between workflows), so a remount on a
+		// different workflow can still detect the switch and reset. Intentionally
+		// NOT cleared by resetState — it's bookkeeping, not wizard content.
+		const lastWorkflowId = ref<string>('');
 
 		function resetState() {
 			activeStep.value = 0;
@@ -164,6 +169,10 @@ export const useEvaluationsWizardSidepanelStore = defineStore(
 			activeRunId.value = id;
 		}
 
+		function setLastWorkflowId(id: string) {
+			lastWorkflowId.value = id;
+		}
+
 		// Preserves user edits (including intentionally cleared fields).
 		function seedInputs(values: Record<string, string>) {
 			const next: Record<string, string> = { ...values };
@@ -187,6 +196,7 @@ export const useEvaluationsWizardSidepanelStore = defineStore(
 			customChecks,
 			isCustomCheckModalOpen,
 			activeRunId,
+			lastWorkflowId,
 			open,
 			close,
 			toggle,
@@ -207,6 +217,7 @@ export const useEvaluationsWizardSidepanelStore = defineStore(
 			addCustomCheck,
 			removeCustomCheck,
 			setActiveRunId,
+			setLastWorkflowId,
 		};
 	},
 );
