@@ -11,8 +11,10 @@ import { useNDVStore } from '@/features/ndv/shared/ndv.store';
 import { createWorkflowDocumentId } from '@/app/stores/workflowDocument.store';
 import { useWorkflowsStore } from '@/app/stores/workflows.store';
 import { useNodeTypesStore } from '@/app/stores/nodeTypes.store';
+import { useSettingsStore } from '@/app/stores/settings.store';
 import type { ICredentialsResponse } from '../../credentials.types';
 import { within, waitFor } from '@testing-library/vue';
+import userEvent from '@testing-library/user-event';
 import type { ICredentialType, INode, INodeTypeDescription } from 'n8n-workflow';
 
 vi.mock('vue-router', async () => ({
@@ -945,6 +947,63 @@ describe('CredentialEdit', () => {
 
 			await retry(() => expect(credentialsStore.getCredentialData).toHaveBeenCalled());
 			await retry(() => expect(queryByTestId('oauth-not-connected-banner')).not.toBeVisible());
+		});
+
+		describe('switching sharing mode', () => {
+			const createPiniaWithDynamicCredentials = () =>
+				createTestingPinia({
+					initialState: {
+						[STORES.UI]: {
+							modalsById: {
+								[CREDENTIAL_EDIT_MODAL_KEY]: { open: true },
+							},
+						},
+						[STORES.SETTINGS]: {
+							settings: {
+								enterprise: { sharing: true, externalSecrets: false },
+								templates: { host: '' },
+								activeModules: ['dynamic-credentials'],
+								envFeatureFlags: { N8N_ENV_FEAT_DYNAMIC_CREDENTIALS: true },
+							},
+						},
+					},
+				});
+
+			test('resets the connected state when switching from static to private', async () => {
+				const pinia = createPiniaWithDynamicCredentials();
+				const settingsStore = mockedStore(useSettingsStore);
+				// `isModuleActive` is a store function, which createTestingPinia stubs by
+				// default — restore the real behaviour for the dynamic-credentials module.
+				settingsStore.isModuleActive.mockImplementation(
+					(name: string) => name === 'dynamic-credentials',
+				);
+				// A static credential whose per-user connection flag leaked over from a
+				// prior in-session connect. Switching it to private must not carry that
+				// connected state over, since no end-user connection exists yet.
+				const credentialsStore = setupOAuthCredential({
+					isResolvable: false,
+					connectedByMe: true,
+					oauthTokenData: false,
+				});
+
+				const { queryByTestId, getByTestId } = renderComponent({
+					props: {
+						activeId: 'cred-banner',
+						modalName: CREDENTIAL_EDIT_MODAL_KEY,
+						mode: 'edit',
+					},
+					pinia,
+				});
+
+				await retry(() => expect(credentialsStore.getCredentialData).toHaveBeenCalled());
+				await retry(() => expect(getByTestId('dynamic-credentials-toggle')).toBeVisible());
+
+				await userEvent.click(getByTestId('dynamic-credentials-toggle'));
+
+				await retry(() => expect(queryByTestId('oauth-not-connected-banner')).toBeVisible());
+				expect(queryByTestId('oauth-connect-success-banner')).not.toBeVisible();
+				expect(queryByTestId('oauth-disconnect-button')).not.toBeInTheDocument();
+			});
 		});
 	});
 });
